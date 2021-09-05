@@ -2,5 +2,5 @@ apiVersion: v2
 description: Basic helm chart for http apis
 name: basicapi
 type: library
-version: 0.1.2
+version: 0.1.0
 appVersion: "1.16.0"
