@@ -52,6 +52,20 @@ spec:
               containerPort: {{ .Values.healthCheckPort }}
               protocol: TCP
             {{ end }}
+          {{ if .Values.healthCheckPort }} 
+          livenessProbe:
+            httpGet:
+              path: /health/liveness
+              port: http
+            initialDelaySeconds: 180
+            periodSeconds: 3
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: http
+            initialDelaySeconds: 180
+            periodSeconds: 3
+          {{ end }}
           {{ if .Values.resources }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
