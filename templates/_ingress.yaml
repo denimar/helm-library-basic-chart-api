@@ -1,0 +1,46 @@
+{{- define "basicapi.ingress" -}}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ .Release.Name }}-ingress
+  labels:
+    app: {{ .Release.Name }}
+    {{- with .Values.labels }}
+    {{ toYaml . | nindent 4 }}
+    {{- end }}
+  annotations:
+    kubernetes.io/ingress.class: {{ .Values.ingressClass | default "nginx" }}
+    cert-manager.io/issuer: "letsencrypt-prod"
+spec:
+  tls:
+    - hosts:
+      - {{ .Values.ingressHostName }}
+      secretName: {{ .Release.Name }}-ingress-tls-prod
+      {{- range .Values.moreHttpIngresses }}
+      - {{ .ingressHostName }}
+      secretName: {{ .ingressServiceName }}-ingress-tls-prod
+      {{- end }}
+  rules:
+    - host: {{ .Values.ingressHostName }}
+      http:
+        paths:
+          - path: {{ .ingressPath | default "/" }}
+            pathType: {{ .ingressPathType | default "Prefix" }}
+            backend:
+              service: 
+                name: {{ .Release.Name }}
+                port: 
+                  number: {{ .Values.httpPort }}
+    {{- range .Values.moreHttpIngresses }}
+    - host: {{ .ingressHostName }}
+      http:
+        paths:
+          - path: {{ .ingressPath | default "/" }}
+            pathType: {{ .ingressPathType | default "Prefix" }}
+            backend:
+              service:
+                name: {{ .ingressServiceName }}
+                port: 
+                  number: {{ .ingressServicePort }}
+    {{- end }}
+{{- end }}

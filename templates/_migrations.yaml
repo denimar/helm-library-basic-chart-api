@@ -1,0 +1,60 @@
+{{- define "basicapi.migrations" -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-migrations-configmap
+  labels:
+    app: {{ .Release.Name }}
+    {{- with .Values.labels }}
+    {{ toYaml . | nindent 4 }}
+    {{- end }}
+  annotations:
+      "helm.sh/hook": pre-install,pre-upgrade
+      "helm.sh/hook-weight": "-10"
+      "helm.sh/hook-delete-policy": hook-succeeded
+data:
+  {{ if .Values.configMapFile }}
+  {{- $file := printf "env/%s" .Values.configMapFile -}}
+  {{ .Files.Get $file | nindent 2}}
+  {{ else }}
+  {{- $file := printf "env/config.%s.yaml" .Values.env -}}
+  {{ .Files.Get $file | nindent 2}}
+  {{ end }}
+  {{ if .Values.secretsFile }}
+  {{- $file := printf "env/%s.dec" .Values.secretsFile -}}
+  {{ .Files.Get $file | nindent 2}}
+  {{ else }}
+  {{- $file := printf "env/secrets.%s.yaml.dec" .Values.env -}}
+  {{ .Files.Get $file | nindent 2}}
+  {{ end }}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: "{{ .Release.Name }}"
+  labels:
+  annotations:
+    "helm.sh/hook": pre-install,pre-upgrade
+    "helm.sh/hook-weight": "-1"
+    "helm.sh/hook-delete-policy": hook-succeeded
+spec:
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}
+        type: migration
+        {{- with .Values.labels }}
+        {{ toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: {{ .Release.Name }}
+          image: {{ default .Values.container.image .Values.migrations.image }}:{{ default .Values.container.tag .Values.migrations.tag }}
+          command: {{ .Values.migrations.command }}
+          args: {{ .Values.migrations.args }}
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - configMapRef:
+                name: {{ .Release.Name }}-migrations-configmap
+{{- end }}

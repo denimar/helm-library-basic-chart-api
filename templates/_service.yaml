@@ -1,0 +1,22 @@
+{{- define "basicapi.service" -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}
+  labels:
+    {{- with .Values.labels }}
+    {{ toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  ports:
+  - port: {{ .Values.httpPort }}
+    protocol: TCP
+    name: {{ .Values.httpPortName | default "default" }}
+  {{- range .Values.morePorts }}
+  - port: {{ .port }}
+    name : {{ .name }}
+    protocol: {{ .protocol | default "TCP" }}
+  {{- end }}
+  selector:
+    app: {{ .Release.Name }}
+{{- end }}

@@ -1,0 +1,28 @@
+{{- define "basicapi.configmap" -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-configmap
+  labels:
+    app: {{ .Release.Name }}
+    {{- with .Values.labels }}
+    {{ toYaml . | nindent 4 }}
+    {{- end }}
+data:
+  API_PORT: "{{ .Values.httpPort }}"
+  {{ if .Values.configMapFile }}
+  {{- $file := printf "env/%s" .Values.configMapFile -}}
+  {{ .Files.Get $file | nindent 2}}
+  {{ else }}
+  {{- $file := printf "env/config.%s.yaml" .Values.env -}}
+  {{ .Files.Get $file | nindent 2}}
+  {{ end }}
+  {{ if .Values.secretsFile }}
+  {{- $file := printf "env/%s.dec" .Values.secretsFile -}}
+  {{ .Files.Get $file | nindent 2}}
+  {{ else }}
+  {{- $file := printf "env/secrets.%s.yaml.dec" .Values.env -}}
+  {{ .Files.Get $file | nindent 2}}
+  {{ end }}
+{{- end }}
+  
